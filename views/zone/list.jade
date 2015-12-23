@@ -1,0 +1,157 @@
+//
+   Created by Julien on 07/10/2015.
+
+extends ../layout
+block content
+    div.container
+        div.row
+            div.col-sm-6.col-md-4.col-md-offset-4
+                ul.list-group
+                    each zone in zones
+                        li.list-group-item.clearfix
+                            | #{zone.name}
+                            button.btn.btn-default(id="deleteBtn", data-zone-name=zone.name, data-toggle="modal", data-target=".confirmDelete" style="float:right; margin-left:10px;")
+                                span.glyphicon.glyphicon-trash
+                            a.btn.btn-default(href="/zone/update?id=" + zone.name, style="float:right;")
+                                span.glyphicon.glyphicon-pencil
+                        .map-container
+                            div.map(id=zone.name ,data-shape=zone.shape)
+                -if (zones.length <= 0)
+                    | Vous n'avez aucune zone
+                    a.btn.btn-default(href="/zone/create") Ajouter une nouvelle zone
+        div.modal.fade.confirmDelete
+            div.modal-dialog.modal-sm
+                div.modal-content
+
+                    div Êtes vous sûr de vouloir supprimer cette zone?
+                    a.btn.btn-default(id="confirmDelete") Confirmer
+                    a.btn.btn-default(data-dismiss="modal") Annuler
+
+
+
+
+    script(src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAQkAgVe2oC8CeA4haY7K3eEaGFxK_IOd4&signed_in=true&callback=initMap", async="true", defer="true")
+    script(type='text/javascript').
+        var lastDeleteClick = "";
+
+        $(document).ready(function () {
+
+            $("#navListZone").parent().addClass("active");
+
+            //Programmation un peu à chier mais bon...
+            $(document).on("click", "#deleteBtn", function (event) {
+                lastDeleteClick = $(event.currentTarget).attr("data-zone-name");
+            });
+
+            $(document).on("click", "#confirmDelete", function () {
+                $.ajax({
+                    type: "POST",
+                    url: '/zone/delete',
+                    data: {id: lastDeleteClick},
+                    success: function (response) {
+                        if (response.success) {
+                            setTimeout(function () {
+                                window.location.href = "/zone/list";
+                            }, 500);
+                        }
+                        else
+                            $.notify("Une erreur s'est produite", {globalPosition: "top left", className: "error"});
+                    }
+                });
+            });
+        });
+
+        //Gestion du polygone: Code inspiré de : http://gmaps-samples-v3.googlecode.com/svn/trunk/poly/poly_edit.html
+        function initMap() {
+            debugger;
+            var mapOptions = {
+
+                zoom: 15,
+                mapTypeId: google.maps.MapTypeId.HYBRID,
+                scrollwheel: false,
+                draggable: true,
+                panControl: true,
+                zoomControl: true,
+                mapTypeControl: true,
+                scaleControl: true,
+                streetViewControl: false,
+                overviewMapControl: true,
+                rotateControl: true,
+                mapTypeControl: true,
+                mapTypeControlOptions: {
+                    style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+                }
+            };
+            $(".map").each(function (index, element) {
+
+                debugger;
+                var shape = JSON.parse($(element).attr("data-shape"));
+                var coordinates = shape[0].pointCoordinates;
+                if (shape[0].type == "circle") {
+                    var position = new google.maps.LatLng(coordinates.lat, coordinates.lng);
+                    mapOptions.center = position;
+                    var map = new google.maps.Map(element, mapOptions);
+                    var zoneCircle = new google.maps.Circle({
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2,
+                        fillColor: '#5555FF',
+                        fillOpacity: 0.35,
+                        map: map,
+                        center: new google.maps.LatLng(coordinates.lat, coordinates.lng),
+                        radius: parseInt(coordinates.radius)
+                    });
+                }
+                else {
+                    var path = new google.maps.MVCArray;
+                    $(coordinates).each(function (index, point) {
+                        path.push(new google.maps.LatLng(point.lat, point.lng));
+                    });
+                    var position = new google.maps.LatLng(coordinates[0].lat, coordinates[0].lng);
+                    mapOptions.center = position;
+                    var markers = [];
+                    var map = new google.maps.Map(element, mapOptions);
+
+                    var poly = new google.maps.Polygon({
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2,
+                        fillColor: '#5555FF',
+                        fillOpacity: 0.35
+                    });
+                    poly.setMap(map);
+                    poly.setPaths(new google.maps.MVCArray([path]));
+                //google.maps.event.addListener(map, 'click', addPoint);
+                }
+            });
+
+
+        }
+
+//            var infoWindow = new google.maps.InfoWindow({map: map});
+//                          // Try HTML5 geolocation.
+//            if (navigator.geolocation) {
+//                navigator.geolocation.getCurrentPosition(function (position) {
+//                    var pos = {
+//                        lat: position.coords.latitude,
+//                        lng: position.coords.longitude
+//                    };
+//                    infoWindow.setPosition(pos);
+//                    infoWindow.setContent('Location found.');
+//                    map.setCenter(pos);
+//                }, function () {
+//                    handleLocationError(true, infoWindow, map.getCenter());
+//                });
+//            } else {
+//                // Browser doesn't support Geolocation
+//                handleLocationError(false, infoWindow, map.getCenter());
+//            }
+//        }
+//
+//        function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+//            infoWindow.setPosition(pos);
+//            infoWindow.setContent(browserHasGeolocation ?
+//                    'Error: The Geolocation service failed.' :
+//                    'Error: Your browser doesn\'t support geolocation.');
+
+

@@ -1,0 +1,55 @@
+//
+   Created by Julien on 07/10/2015.
+extends ../layout
+block content
+    div.container
+        div.row
+            div.col-sm-6.col-md-4.col-md-offset-4
+                h1.text-center.login-title Association d'un nouveau GPS
+                    div.signup-wall
+                        form(class='form-signin')
+                            | Enregistrement
+                            input(type='text', name='name', class='form-control', placeholder='Nom de l\'animal',required, autofocus)
+                            input(type='text', name='materialId', class='form-control', placeholder='Identifiant matériel', required)
+                            input(type='text', name='zone', class='form-control', placeholder='Zone limite')
+                            button(id='gpsSubmit', class='btn btn-lg btn-primary btn-block') Enregistrer
+                            span.clearfix
+                    #message
+                        if message
+                            h1.text-center.error-message #{message}
+    script(type='text/javascript').
+        $(document).ready(function () {
+
+            $("#navCreateGps").parent().addClass("active");
+
+            $(document).on("submit", ".form-signin", function (event) {
+                debugger;
+                var data = {
+                    gps: {
+                        name: $("[name='name']").val(), materialId: $("[name='materialId']").val(),
+                        zone: $("[name='zone']").val()
+                    }
+                };
+                $.ajax({
+                    type: "POST",
+                    url: '/gps/create',
+                    data: data,
+                    success: function (response) {
+                        if (response.success) {
+                            $.notify(response.message, {globalPosition: "top left", className: "success"});
+                            $("[name='name']").val("");
+                            $("[name='materialId']").val("");
+                            $("[name='zone']").val("");
+                        }
+                        else
+                            $.notify(response.message, {globalPosition: "top left", className: "error"});
+                    },
+                    error: function (response) {
+                    }
+                });
+                event.preventDefault();
+            });
+        });
+
+
+

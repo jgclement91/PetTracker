@@ -1,0 +1,55 @@
+html
+    body
+        nav.navbar.navbar-default
+            .container-fluid
+                .navbar-header
+                    button.navbar-toggle.collapsed(type='button', data-toggle='collapse', data-target='#menu', aria-expanded='false')
+                        span.sr-only Toggle navigation
+                        span.icon-bar
+                        span.icon-bar
+                        span.icon-bar
+                    span.navbar-brand Pet tracker mobile
+                // Collect the nav links, forms, and other content for toggling
+                #menu.collapse.navbar-collapse
+                    -if(!user)
+                        ul.nav.navbar-nav
+                            li
+                                a(id='navConnexion', href='/')
+                                    | Connexion
+                            li
+                                a(id='navSignup', href='/signup') Créer un compte
+
+
+
+                    -if(user)
+                        ul.nav.navbar-nav.navbar-right
+                            li.dropdown
+                                a.dropdown-toggle(href='#', data-toggle='dropdown', role='button', aria-haspopup='true', aria-expanded='false')
+                                    | Mon compte
+                                    span.caret
+                                ul.dropdown-menu
+                                    li
+                                        a(id='navProfile', href='/users/profile') Mon profil
+                                    li
+                                        a(href='/signout') Déconnexion
+
+                            li.dropdown
+                                a.dropdown-toggle(href='#', data-toggle='dropdown', role='button', aria-haspopup='true', aria-expanded='false')
+                                    | Mes zones
+                                    span.caret
+                                ul.dropdown-menu
+                                    li
+                                        a(id='navCreateZone', href='/zone/create') Ajouter une zone
+                                    li
+                                        a(id='navListZone', href='/zone/list') Voir mes zones
+
+                            li.dropdown
+                                a.dropdown-toggle(href='#', data-toggle='dropdown', role='button', aria-haspopup='true', aria-expanded='false')
+                                    | Mes GPS
+                                    span.caret
+                                ul.dropdown-menu
+                                    li
+                                        a(id='navCreateGps', href='/gps/create') Ajouter un GPS
+                                    li
+                                        a(id='navListGps', href='/gps/list') Voir mes GPS
+

@@ -1,0 +1,29 @@
+//
+   Created by Julien on 07/10/2015.
+
+extends ../layout
+block content
+    div.container
+        div.row
+            div.col-sm-6.col-md-4.col-md-offset-4
+                ul.list-group
+                    each gps in gpsList
+                        li.list-group-item.clearfix
+                            |Propriétaire: #{gps.user}
+                            br
+                            |Animal: #{gps.name}
+                            br
+                            button.btn.btn-primary.sendAlert(data-alert=gps.name) Envoyer une alerte
+
+    input(type="hidden" id="ioServer" value="#{ioServer}")
+
+    script(type="text/javascript").
+        $(document).ready(function () {
+                    $(document).on("click", ".sendAlert", function (e) {
+                        var socket = io($('#ioServer').val());
+                        socket.emit("alert",$(e.currentTarget).attr("data-alert"));
+                    });
+                }
+        );
+
+

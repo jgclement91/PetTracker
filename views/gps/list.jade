@@ -1,0 +1,144 @@
+//
+   Created by Julien on 07/10/2015.
+
+extends ../layout
+block content
+    div.container
+        div.row
+            div.col-sm-6.col-md-4.col-md-offset-4
+                ul.list-group
+                    each gps in gpsList
+                        li.list-group-item.clearfix
+                            | #{gps.name}
+                            button.btn.btn-default(id="deleteBtn", data-gps-name=gps.name, data-toggle="modal", data-target=".confirmDelete" style="float:right; margin-left:10px;")
+                                span.glyphicon.glyphicon-trash
+                            a.btn.btn-default(href="/gps/update?id=" + gps.name, style="float:right;")
+                                span.glyphicon.glyphicon-pencil
+                        .map-container
+                            div.map(id=gps.name ,data-latitude=gps.latitude, data-longitude=gps.longitude)
+                -if (gpsList.length <= 0)
+                    | Vous n'avez aucun Tagg Gps associé à votre compte
+                    a.btn.btn-default(href="/gps/create") Ajouter un Gps
+        div.modal.fade.confirmDelete
+            div.modal-dialog.modal-sm
+                div.modal-content
+
+                    div Êtes vous sûr de vouloir supprimer ce Gps?
+                    a.btn.btn-default(id="confirmDelete") Confirmer
+                    a.btn.btn-default(data-dismiss="modal") Annuler
+
+
+
+
+    script(src="#{googleMapApiKey}", async="true", defer="true")
+    script(type='text/javascript').
+        var lastDeleteClick = "";
+        var gpsLatitude;
+        var gpsLongitude;
+        var markers = [];
+        var gpsPath;
+        function generateMap(){
+
+            var public_key = 'AJxWnmoo7Ztnqm13NYEp';
+            $.ajax({
+                url: 'http://data.sparkfun.com/output/' + public_key + '.json',
+                jsonp: 'callback',
+                cache: true,
+                dataType: 'jsonp',
+                data: {
+                    page: 1
+                },
+                success: function (response) {
+                    console.log(response);
+                    gpsPath = response;
+                    gpsLatitude = response[0].latitude;
+                    gpsLongitude = response[0].longitude;
+                    initMap(gpsLatitude, gpsLongitude);
+                }
+            });
+
+        }
+
+
+        $(document).ready(function () {
+
+
+
+
+            $("#navListGps").parent().addClass("active");
+
+            //Programmation un peu à chier mais bon...
+            $(document).on("click", "#deleteBtn", function (event) {
+                lastDeleteClick = $(event.currentTarget).attr("data-gps-name");
+            });
+
+            $(document).on("click", "#confirmDelete", function () {
+                $.ajax({
+                    type: "POST",
+                    url: '/gps/delete',
+                    data: {id: lastDeleteClick},
+                    success: function (response) {
+                        if (response.success) {
+                            setTimeout(function () {
+                                window.location.href = "/gps/list";
+                            }, 500);
+                        }
+                        else
+                            $.notify("Une erreur s'est produite", {globalPosition: "top left", className: "error"});
+                    }
+                });
+            });
+        });
+        function initMap(latitude, longitude) {
+            var mapOptions = {
+
+                zoom: 16,
+                mapTypeId: google.maps.MapTypeId.HYBRID,
+                scrollwheel: false,
+                draggable: true,
+                panControl: true,
+                zoomControl: true,
+                mapTypeControl: true,
+                scaleControl: true,
+                streetViewControl: false,
+                overviewMapControl: true,
+                rotateControl: true
+            };
+            $(".map").each(function (index, element) {
+                var position = new google.maps.LatLng(latitude, longitude);
+                mapOptions.center = position;
+
+                var map = new google.maps.Map(element, mapOptions);
+                var marker = new google.maps.Marker({
+                    position: position,
+                    title:$(element).attr("id")
+                });
+                marker.setMap(map);
+
+                moveAnimal(0, marker);
+            });
+
+
+        }
+
+        function moveAnimal(index, marker){
+            if (gpsPath){
+                if (index < gpsPath.length)
+                {
+                    if (gpsPath[index].latitude!="0.0") {
+                        var position = new google.maps.LatLng(gpsPath[index].latitude, gpsPath[index].longitude);
+                        marker.setPosition(position);
+                    }
+                    else{
+                        return moveAnimal(index+1, marker);
+                    }
+                }
+                else
+                    index = -1;
+                setTimeout(function () {
+                    moveAnimal(index+1, marker);
+                },750);
+                }
+        }
+
+

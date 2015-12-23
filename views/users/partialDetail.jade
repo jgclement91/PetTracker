@@ -1,0 +1,26 @@
+//Created by Julien on 12/09/2015.
+
+
+| Nom d'utilisateur: #{user.username}
+br
+| Courriel: #{user.email}
+br
+| Prénom #{user.firstName}
+br
+| Nom de famille: #{user.lastName}
+br
+button(id='switchEdit', class='btn btn-small btn-primary', type='button') Modifier
+
+script(type='text/javascript').
+    $(document).off('click', '#switchEdit').on('click', '#switchEdit', function () {
+        $.ajax({
+            type: "GET",
+            url: '/users/partialEdit',
+            success: function (response) {
+                $('#profilePartial').html(response);
+            },
+            error: function (response) {
+            }
+        });
+    });
+

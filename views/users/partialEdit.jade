@@ -1,0 +1,55 @@
+//
+   Created by Julien on 12/09/2015.
+form.form-signin(action='/users/edit', method='POST')
+    | Nom d'utilisateur: #{user.username}
+    br
+    | Courriel:
+    input(type='text', name='email', class='form-control',required, autofocus, value='#{user.email}')
+    | Prénom:
+    input(type='text', name='firstName', class='form-control',required, autofocus, value='#{user.firstName}')
+    | Nom de famille
+    input(type='text', name='lastName', class='form-control',required, autofocus, value='#{user.lastName}')
+
+    button(id='editProfile', class='btn btn-small btn-primary', type='button') Enregistrer
+    button(id='cancel', class='btn btn-small btn-primary', type='button') Annuler
+
+script(type='text/javascript').
+    $.notify.defaults({ className: "success" });
+    $(document).off('click', '#editProfile').on('click', '#editProfile', function () {
+
+        var data = {user: {email: $("[name='email']").val(), firstName: $("[name='firstName']").val(),
+            lastName: $("[name='lastName']").val()}};
+        $.ajax({
+            type: "POST",
+            url: '/users/edit',
+            data: data,
+            success: function (response) {
+                $.notify(response.message,{globalPosition:"top left"});
+                $.ajax({
+                    type: "GET",
+                    url: '/users/partialDetail',
+                    success: function (response) {
+
+                        $('#profilePartial').html(response);
+
+                    },
+                    error: function (response) {
+                    }
+                });
+            },
+            error: function (response){
+            }
+        });
+    });
+
+    $(document).off('click', '#cancel').on('click', '#cancel', function () {
+        $.ajax({
+            type: "GET",
+            url: '/users/partialDetail',
+            success: function (response) {
+                $('#profilePartial').html(response);
+            },
+            error: function (response) {
+            }
+        });
+    });

@@ -1,0 +1,256 @@
+//
+   Created by Julien on 07/10/2015.
+extends ../layout
+block content
+    div.container
+        div.row
+            div.col-sm-6.col-md-4.col-md-offset-4
+                h1.text-center.login-title Création de zone
+                    div.signup-wall
+                        form(class='form-signin')
+                            | Coordonnées GPS
+                            .btn-group(aria-label="Type de zone", data-toggle="buttons")
+                                label.btn.btn-primary.active(id="zoneCircle")
+                                    input(name="options", type="radio")
+                                    | Zone circulaire
+                                label.btn.btn-primary(id="zonePoly")
+                                    input(name="options", type="radio")
+                                    | Zone polygonale
+                            input(type='text', name='name', class='form-control', placeholder='Nom de zone')
+
+                            //input(type='number', name='latitude', class='form-control', placeholder='Latitude', required)
+                            //input(type='number', name='longitude', class='form-control', placeholder='Longitude',required)
+                            //input(type='number', name='radius', class='form-control', placeholder='Rayon (mètre)',required)
+                            .map-container
+                                div.map
+                            button(id='zoneSubmit', class='btn btn-lg btn-primary btn-block') Enregistrer
+                            span.clearfix
+                    #message
+                        if message
+                            h1.text-center.error-message #{message}
+
+
+
+    script(src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAQkAgVe2oC8CeA4haY7K3eEaGFxK_IOd4&signed_in=true&callback=initMap", async="true", defer="true")
+    script(type='text/javascript').
+        var path;
+        var markers = [];
+        var circle;
+
+        $(document).ready(function () {
+
+
+            $("#navCreateZone").parent().addClass("active");
+
+            $(document).on("click", "#zoneCircle", function (event) {
+                event.preventDefault();
+                if (!$("#zoneCircle").hasClass("active"))
+                removeShape();
+            });
+
+            $(document).on("click", "#zonePoly", function (event) {
+                event.preventDefault();
+
+                if (!$("#zonePoly").hasClass("active"))
+                removeShape();
+            });
+
+            $(document).on("click", "#zoneSubmit", function (event) {
+                var zoneShape = jsonifyShape();
+                var data = {
+                    zone: {
+                        name: $("[name='name']").val(),
+                        shape: zoneShape
+                    }
+                };
+
+                $.ajax({
+                    type: "POST",
+                    url: '/zone/create',
+                    data: data,
+                    success: function (response) {
+                        if (response.success) {
+                            $.notify(response.message, {globalPosition: "top left", className: "success"});
+                            $("[name='name']").val("");
+                            removeShape();
+                        }
+                        else
+                            $.notify(response.message, {globalPosition: "top left", className: "error"});
+                    },
+                    error: function (response) {
+                    }
+                });
+                event.preventDefault();
+
+            });
+        });
+
+
+        function initMap() {
+            path = new google.maps.MVCArray();
+            var map = new google.maps.Map(document.getElementsByClassName('map')[0], {
+                zoom: 15,
+                mapTypeId: google.maps.MapTypeId.HYBRID,
+                scrollwheel: false,
+                draggable: true,
+                panControl: true,
+                zoomControl: true,
+                mapTypeControl: true,
+                scaleControl: true,
+                streetViewControl: false,
+                overviewMapControl: true,
+                rotateControl: true,
+                mapTypeControl: true,
+                mapTypeControlOptions: {
+                    style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+                }
+            });
+
+            //radius.setMap(map);
+
+            var poly = new google.maps.Polygon({
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#5555FF',
+                fillOpacity: 0.35
+            });
+            poly.setMap(map);
+            poly.setPaths(new google.maps.MVCArray([path]));
+            //google.maps.event.addListener(map, 'click', addPoint);
+            map.addListener('click', function (e) {
+                if ($("#zoneCircle").hasClass("active"))
+                    createCircle(e.latLng, map);
+                else
+                    addPoint(e.latLng, map, markers);
+            });
+
+            var infoWindow = new google.maps.InfoWindow({map: map});
+                  // Try HTML5 geolocation.
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    var pos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    infoWindow.setPosition(pos);
+                    infoWindow.setContent('Location found.');
+                    map.setCenter(pos);
+                }, function () {
+                    handleLocationError(true, infoWindow, map.getCenter());
+                });
+            } else {
+            // Browser doesn't support Geolocation
+                handleLocationError(false, infoWindow, map.getCenter());
+            }
+        }
+        function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+            infoWindow.setPosition(pos);
+            infoWindow.setContent(browserHasGeolocation ?
+                    'Error: The Geolocation service failed.' :
+                    'Error: Your browser doesn\'t support geolocation.');
+        }
+
+        function jsonifyShape() {
+
+            var shape = []
+
+            if ($("#zoneCircle").hasClass("active")) {
+                if (circle) {
+                    var pointCoordinates = {
+                        lat: circle.center.lat(),
+                        lng: circle.center.lng(),
+                        radius: circle.radius
+                    }
+                    var shapeInfo = {
+                        type:"circle",
+                        pointCoordinates:pointCoordinates
+                    }
+                    shape.push(shapeInfo);
+                }
+            }
+            else {
+                var coordinatesArray = []
+                $(path.j).each(function (index, point) {
+                    var coordinates = {
+                        lat: point.lat(),
+                        lng: point.lng()
+                    }
+                    coordinatesArray.push(coordinates);
+                });
+                var shapeInfo = {
+                    type: "polygon",
+                    pointCoordinates: coordinatesArray
+                }
+                shape.push(shapeInfo);
+            }
+
+            return shape;
+
+        }
+
+        function addPoint(latLng, map) {
+            path.insertAt(path.length, latLng);
+            var marker = new google.maps.Marker({
+                position: latLng,
+                map: map,
+                draggable: true
+            });
+            markers.push(marker);
+            marker.setTitle("#" + path.length);
+            google.maps.event.addListener(marker, 'click', function () {
+                        marker.setMap(null);
+                        for (var i = 0, I = markers.length; i < I && markers[i] != marker; ++i);
+                        markers.splice(i, 1);
+                        path.removeAt(i);
+                    }
+            );
+            google.maps.event.addListener(marker, 'dragend', function () {
+                        for (var i = 0, I = markers.length; i < I && markers[i] != marker; ++i);
+                        path.setAt(i, marker.getPosition());
+                    }
+            );
+        }
+
+        function createCircle(latLng, map) {
+            if (!circle) {
+                var zoneCircle = new google.maps.Circle({
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 0.8,
+                    strokeWeight: 2,
+                    fillColor: '#5555FF',
+                    fillOpacity: 0.35,
+                    map: map,
+                    editable: true,
+                    center: new google.maps.LatLng(latLng.lat(), latLng.lng()),
+                    radius: 50
+                });
+                circle = zoneCircle;
+
+                google.maps.event.addListener(zoneCircle, 'click', function () {
+                    removeShape();
+                });
+            }
+        }
+
+        function removeShape() {
+
+            if ($("#zoneCircle").hasClass("active") && circle) {
+                circle.setMap(null);
+                circle = null;
+            }
+            else {
+
+                $(markers).each(function (index, marker) {
+                    marker.setMap(null);
+                    for (var i = 0, I = markers.length; i < I && markers[i] != marker; ++i);
+                    markers.splice(i, 1);
+                    path.removeAt(i);
+                });
+            }
+        }
+
+
+
+
+
